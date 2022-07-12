@@ -1,0 +1,115 @@
+version: '3'
+
+#Networks
+#Dockercontainer are isolated, but in docker compose a bridge network is created
+#on default, each container can communicate with each other by using the container name as ip on the exposed port of each container 
+#
+networks:
+  inceptor_net:
+    name: inceptor_net #custom name for the docker network
+
+volumes:
+  mariadb:
+    name: mariadb
+    driver: local
+    driver_opts:
+      device: /home/tobi/data/mariadb
+      o: bind
+      type: none
+  
+  wordpress:
+    name: wordpress
+    driver: local
+    driver_opts:
+      device: /home/tobi/data/wordpress
+      o: bind
+      type: none
+
+services:
+  nginx:
+    #startup dependency, this service will start aftrer the specified service
+    depends_on:
+     - wordpress
+
+    #customise containername, for easy docker exec
+    container_name: nginx
+
+    build:
+      #path to build location
+      context: ./requirements/nginx/
+      #passing the build arguments from the .env file to the dockerfile
+      args:
+        - CERTS=${CERTS}
+      
+    #the image, the build one or extrnal image (myimage:latest)
+    image: nginx
+
+    #specifies the networks the containe is part of
+    networks:
+      - inceptor_net
+
+    #enabels portmapping between Dockernetwork and Hostmaschine
+    #HOST_PORT:CONTAINER_PORT
+    ports:
+      - "443:443"
+    volumes:
+      - wordpress:/var/www/wordpress
+    #restart policy on container exit
+    restart: always
+
+  mariadb:
+    container_name: mariadb
+
+    #in the build we can specify the args wich are used to build the container
+    build:
+      context: ./requirements/mariadb/
+      args:
+        - DB_NAME=${DB_NAME}
+        - DB_USER=${DB_USER}
+        - DB_HOST=${DB_HOST}
+        - DB_USERPASS=${DB_USERPASS}
+
+    image: mariadb
+
+    networks:
+      - inceptor_net
+
+    volumes:
+      - mariadb:/var/lib/mysql
+    
+    restart: always
+  
+  wordpress:
+    depends_on:
+      - mariadb
+    
+    container_name: wordpress
+    
+    build: ./requirements/wordpress/
+
+    image: wordpress
+
+    #passing ENV to the dockerfile
+    environment:
+      - DB_HOST=${WP_DB_HOST}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_USERPASS=${DB_USERPASS}
+      - WP_URL=${WP_URL}
+      - WP_TITLE=${WP_TITLE}
+      - WP_ADMIN=${WP_ADMIN}
+      - WP_ADMIN_PASS=${WP_ADMIN_PASS}
+      - WP_ADMIN_MAIL=${WP_ADMIN_MAIL}
+      - WP_USER=${WP_USER}
+      - WP_USER_PASS=${WP_USER_PASS}
+      - WP_USER_MAIL=${WP_USER_MAIL}
+
+    networks:
+      - inceptor_net
+
+    volumes:
+      - wordpress:/var/www/wordpress
+ 
+    restart: always
+
+
