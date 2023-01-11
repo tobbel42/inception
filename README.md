@@ -12,5 +12,3 @@ Credentials are supplied using the .env file, which was required to be in the gi
 Note: this is a **HUGE SECURITY LEAK** in any real-live-application
 
 ![project_sketch](/images/project_sketch.png)
-
-For more information check out the ![subject file](/en.subject.pdf).
